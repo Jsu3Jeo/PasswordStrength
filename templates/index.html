@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ประเมินความแข็งแรงรหัสผ่าน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100">
+  <div class="max-w-3xl mx-auto px-5 py-10">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">ประเมินความแข็งแรงรหัสผ่าน</h1>
+      <p class="mt-2 text-zinc-300">
+        เพื่อการศึกษาเท่านั้น — ไม่เก็บรหัสผ่าน, ไม่บันทึก log, ไม่ใช่เครื่องมือแฮ็ก
+      </p>
+    </header>
+
+    <section class="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-6">
+      <form id="pwForm" class="space-y-4" onsubmit="return false;">
+        <div>
+          <label class="block text-sm text-zinc-300 mb-2">
+            กรอกรหัสผ่านเพื่อประเมิน (พิมพ์แล้วขึ้นผลทันที)
+          </label>
+
+          <div class="relative">
+            <input
+              id="passwordInput"
+              name="password"
+              type="password"
+              class="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-4 py-3 pr-28 outline-none focus:border-zinc-500"
+              placeholder="พิมพ์รหัสผ่านที่นี่..."
+              autocomplete="off"
+            />
+
+            <button
+              id="togglePasswordBtn"
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900"
+              aria-pressed="false"
+            >
+              แสดงรหัสผ่าน
+            </button>
+          </div>
+
+          <div class="mt-3 flex gap-2 flex-wrap">
+            <button type="button"
+              class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs hover:bg-zinc-900"
+              data-sample="123456">ลอง: 123456</button>
+
+            <button type="button"
+              class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs hover:bg-zinc-900"
+              data-sample="abc123">ลอง: abc123</button>
+
+            <button type="button"
+              class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs hover:bg-zinc-900"
+              data-sample="CorrectHorseBatteryStaple!">ลอง: แบบเดายาก</button>
+
+            <button id="clearBtn" type="button"
+              class="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs hover:bg-zinc-900">
+              ล้าง
+            </button>
+          </div>
+
+          <p class="mt-2 text-xs text-zinc-400">
+            ลองเปรียบเทียบแบบสั้น/แบบยาว/สัญลักษณ์ผสมกัน เพื่อดูความต่างของผลลัพธ์
+          </p>
+        </div>
+      </form>
+    </section>
+ 
+    <section id="resultSection" class="mt-6 grid gap-4 hidden">
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-semibold">ผลลัพธ์</h2>
+            <p class="text-zinc-300 mt-1">
+              ระดับความแข็งแรง:
+              <span id="verdictBadge"
+                    class="inline-flex items-center rounded-full border border-zinc-800 px-3 py-1 bg-zinc-950 text-zinc-200">
+                -
+              </span>
+            </p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm text-zinc-400">คะแนน</p>
+            <p id="scoreText" class="text-3xl font-bold">-</p>
+          </div>
+        </div>
+ 
+        <div class="mt-5">
+          <div class="mt-3 h-3 w-full rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
+            <div id="scoreBar" class="h-full bg-zinc-600" style="width: 0%"></div>
+          </div>
+          <div class="mt-2 flex justify-between text-xs text-zinc-500">
+            <span>อ่อน</span><span>พอใช้</span><span>แข็งแรง</span><span>แข็งแรงมาก</span>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-3 text-sm">
+          <div class="rounded-xl border border-zinc-800 p-4">
+            <p class="text-zinc-400">ความยาว</p>
+            <p id="lenVal" class="text-lg font-semibold">-</p>
+          </div>
+          <div class="rounded-xl border border-zinc-800 p-4">
+            <p class="text-zinc-400">ขนาดชุดอักขระ</p>
+            <p id="charsetVal" class="text-lg font-semibold">-</p>
+          </div>
+          <div class="rounded-xl border border-zinc-800 p-4">
+            <p class="text-zinc-400">Entropy (บิต)</p>
+            <p id="entropyVal" class="text-lg font-semibold">-</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-6">
+        <h3 class="text-lg font-semibold">เวลาเฉลี่ยที่คาดว่า “เดาถูก” (สาธิต)</h3>
+        <p class="text-zinc-400 text-sm mt-1">
+          เป็นการประมาณเพื่อการเรียนรู้เท่านั้น (ขึ้นกับ rate limit, lockout, hashing, GPU ฯลฯ)
+        </p>
+
+        <div class="mt-4 overflow-hidden rounded-xl border border-zinc-800">
+          <table class="w-full text-sm">
+            <thead class="bg-zinc-950/60 text-zinc-300">
+              <tr>
+                <th class="text-left px-4 py-3">สถานการณ์</th>
+                <th class="text-left px-4 py-3">เวลาเฉลี่ย</th>
+              </tr>
+            </thead>
+            <tbody id="crackTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-6">
+        <h3 class="text-lg font-semibold">คำเตือน</h3>
+        <p id="noWarningsText" class="mt-3 text-sm text-zinc-300 hidden">
+          ไม่พบสัญญาณเสี่ยงเด่น ๆ จากกฎพื้นฐาน
+        </p>
+        <ul id="warningsList" class="mt-3 space-y-2 text-zinc-200 text-sm"></ul>
+
+        <h3 class="text-lg font-semibold mt-6">คำแนะนำ</h3>
+        <ul id="suggestionsList" class="mt-3 space-y-2 text-zinc-200 text-sm"></ul>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      const input = document.getElementById("passwordInput");
+      const toggleBtn = document.getElementById("togglePasswordBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const resultSection = document.getElementById("resultSection");
+
+      const verdictBadge = document.getElementById("verdictBadge");
+      const scoreText = document.getElementById("scoreText");
+      const scoreBar = document.getElementById("scoreBar");
+
+      const lenVal = document.getElementById("lenVal");
+      const charsetVal = document.getElementById("charsetVal");
+      const entropyVal = document.getElementById("entropyVal");
+
+      const crackTableBody = document.getElementById("crackTableBody");
+      const warningsList = document.getElementById("warningsList");
+      const suggestionsList = document.getElementById("suggestionsList");
+      const noWarningsText = document.getElementById("noWarningsText");
+ 
+      toggleBtn.addEventListener("click", () => {
+        const isHidden = input.type === "password";
+        input.type = isHidden ? "text" : "password";
+        toggleBtn.textContent = isHidden ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน";
+        toggleBtn.setAttribute("aria-pressed", String(isHidden));
+      });
+ 
+      document.querySelectorAll("[data-sample]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          input.value = btn.getAttribute("data-sample") || "";
+          triggerAnalyze();
+          input.focus();
+        });
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        resultSection.classList.add("hidden");
+        input.focus();
+      });
+
+      function setColorsByScore(score) {
+        verdictBadge.className = "inline-flex items-center rounded-full border border-zinc-800 px-3 py-1";
+        scoreBar.className = "h-full";
+
+        if (score < 35) {
+          verdictBadge.classList.add("bg-red-500/15", "text-red-300");
+          scoreBar.classList.add("bg-red-500");
+        } else if (score < 65) {
+          verdictBadge.classList.add("bg-yellow-500/15", "text-yellow-300");
+          scoreBar.classList.add("bg-yellow-500");
+        } else if (score < 85) {
+          verdictBadge.classList.add("bg-green-500/15", "text-green-300");
+          scoreBar.classList.add("bg-green-500");
+        } else {
+          verdictBadge.classList.add("bg-emerald-500/15", "text-emerald-300");
+          scoreBar.classList.add("bg-emerald-500");
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function renderList(ul, items) {
+        ul.innerHTML = "";
+        (items || []).forEach((t) => {
+          const li = document.createElement("li");
+          li.className = "flex gap-2";
+          li.innerHTML = `<span class="text-zinc-500">•</span><span>${escapeHtml(t)}</span>`;
+          ul.appendChild(li);
+        });
+      }
+
+      function renderCrackTable(rows) {
+        crackTableBody.innerHTML = "";
+        (rows || []).forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.className = "border-t border-zinc-800";
+          tr.innerHTML = `
+            <td class="px-4 py-3">${escapeHtml(row[0])}</td>
+            <td class="px-4 py-3 font-semibold">${escapeHtml(row[1])}</td>
+          `;
+          crackTableBody.appendChild(tr);
+        });
+      }
+
+      async function analyzeNow(pw) {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: pw }),
+        });
+        if (!res.ok) throw new Error("API error");
+        return await res.json();
+      }
+
+      let timer = null;
+
+      async function triggerAnalyze() {
+        const pw = input.value || "";
+        if (!pw) {
+          resultSection.classList.add("hidden");
+          return;
+        }
+
+        try {
+          const data = await analyzeNow(pw);
+
+          resultSection.classList.remove("hidden");
+
+          verdictBadge.textContent = data.verdict;
+          scoreText.textContent = `${data.score}/100`;
+
+          setColorsByScore(data.score);
+          scoreBar.style.width = `${Math.max(0, Math.min(100, data.score))}%`;
+
+          lenVal.textContent = data.length;
+          charsetVal.textContent = data.charset_size;
+          entropyVal.textContent = Number(data.entropy_bits).toFixed(1);
+
+          renderCrackTable(data.crack_times);
+
+          if ((data.warnings || []).length === 0) {
+            noWarningsText.classList.remove("hidden");
+          } else {
+            noWarningsText.classList.add("hidden");
+          }
+          renderList(warningsList, data.warnings);
+          renderList(suggestionsList, data.suggestions);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+ 
+      input.addEventListener("input", () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(triggerAnalyze, 200);
+      });
+    })();
+  </script>
+</body>
+</html>
